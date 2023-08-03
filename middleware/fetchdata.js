@@ -40,7 +40,7 @@ const fetchMonth = (uri, year, month) => { return new Promise((resolve,reject)=>
 
         let parsedMonth;
         if (month){
-            if (isNumber(parseInt(month))){
+            if (isNumber(month)){
                 parsedMonth = Months[month-1];
             }
             else{
@@ -56,11 +56,9 @@ const fetchMonth = (uri, year, month) => { return new Promise((resolve,reject)=>
         
     })
 })}
-
-
-function isNumber (value) {
-    return typeof value === 'number';
-  }
+function isNumber(value){
+    return !isNaN(parseInt(value))
+}
 function capital (str) {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
