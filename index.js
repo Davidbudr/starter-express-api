@@ -1,56 +1,23 @@
 const express = require("express");
 const app = express();
-const fetch = require('isomorphic-fetch');
 
-const URL = 'https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/chmk/mm23/data';
+const rpixSource = require('./routes/rpix');
+const rpiSource = require('./routes/rpi');
 
-app.get('/rpix/:year', (req,res,next)=>{
-    
-    const { year} = req.params;
-    fetch(URL)
-    .then( response => {       
-        if (response.status >= 400) {
-            throw new Error("Bad response from server");
-        }
-        return response.json();
-    })
-    .then(result =>{
-        return result.years
-    })
-    .then( data => {
-        const year_data = data.filter(obj=>{
-            if (obj.year == year){
-                return obj;
-            }
-        })
-        res.json({data: year_data});
-        
-    })
-    // return res.json({data: "success"});
+app.use('/rpix', rpixSource);
+app.use('/rpi', rpiSource);
+
+app.get('/', (req,res,next)=>{
+    res.send(`<p>to use ukrpix please do the following: <br>
+    use ukrpix.cyclic.com/(indexation)/(year)/ <br>
+    or <br>
+    ukrpix.cyclic.com/(indexation)/(year)/(month) <br>
+    where (year) is replaced by the year i.e. 2018 <br>
+    and (month) is replaced by the either the word or numbered month i.e. October or 10 <br>
+    (indexation) is replace by rpi or rpix depending on which you need</p>
+    `)
 })
 
-app.get('/rpix/:year/:month', (req,res,next)=>{
-    const { year, month} = req.params;
-    fetch(URL)
-    .then( response => {       
-        if (response.status >= 400) {
-            throw new Error("Bad response from server");
-        }
-        return response.json();
-    })
-    .then(result =>{
-        return result.months
-    })
-    .then( data => {
-        const year_data = data.filter(obj=>{
-            if (obj.year == year && obj.month == month){
-                return obj;
-            }
-        })
-        res.json({data: year_data});
-        
-    })
-})
 
 app.listen(3000, () =>{
     console.log("running on 3000");
