@@ -1,67 +1,80 @@
-const fetch = require('isomorphic-fetch');
-
 const Months = [  "January",  "February",  "March",  "April",  "May",  "June",  "July",  "August",  "September",  "October",  "November",  "December"];
 
-const fetchYear = (uri, year) => { return new Promise( (resolve,reject) =>{
+const puppet = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 
-    fetch(uri)
-    .then( response => {       
-        if (response.status >= 400) {
-            throw new Error("Bad response from server");
-        }
-        return response.json();
-    })
-    .then(result =>{
-        return result.years
-    })
-    .then( data => {
-        const year_data = data.filter(obj=>{
-            if (obj.year == year){
-                return obj;
-            }
-        })
-        resolve(year_data)
-    })
+puppet.use(StealthPlugin());
+puppet.use(AdblockerPlugin({ blockTrackers: true }));
 
-})}
-
-const fetchMonth = (uri, year, month) => { return new Promise((resolve,reject)=>{
-    fetch(uri)
-    .then( response => {       
-        if (response.status >= 400) {
-            throw new Error("Bad response from server");
-        }
-        return response.json();
-    })
-    .then(result =>{
-        return result.months
-    })
-    .then( data => {
-
-        let parsedMonth;
-        if (month){
-            if (isNumber(month)){
-                parsedMonth = Months[month-1];
-            }
-            else{
-                parsedMonth = capital(month);
-            }
-            const year_data = data.filter(obj=>{
-                if (obj.year == year && obj.month == parsedMonth){
-                    return obj;
-                }
-            })
-            resolve(year_data);
-        }
-        
-    })
-})}
-function isNumber(value){
-    return !isNaN(parseInt(value))
+const isNumber = (value) => {
+  return !isNaN(parseInt(value));
 }
-function capital (str) {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  }
+const capital = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+const fetchData = async (uri) => {
+  const browser = await puppet.launch();
+
+  const page = await browser.newPage();
+  await page.setViewport({ width: 800, height: 600 });
+  let data;
+
+  page.on("response", async (response) => {
+    data = await response.json();
+  });
+
+  await page.goto(uri, { waitUntil: "networkidle0" });
+
+  await browser.close();
+
+  return data;
+};
+
+const fetchYear = (uri,year,fullData) => { return new Promise( async (resolve,reject) =>{
+
+    if (fullData.length > 0){
+      const filtered = fullData.filter(d=>d.year === year);
+      
+      if (filtered.length > 0){
+        return resolve({fullData: fullData, search: filtered});
+      }
+    }
+
+    const data = await fetchData(uri);
+    
+    const newData = data.years.filter(d=>d.year === year);
+
+    resolve({fullData:data.years, search: newData});
+
+})}
+
+const fetchMonth = (uri, year, month, fullData) => { return new Promise(async (resolve,reject)=>{
+    let parsedMonth = '';
+
+    if (isNumber(month)){
+        parsedMonth = Months[month-1];
+    }
+    else{
+        parsedMonth = capital(month);
+    }
+    if (fullData.length > 0){
+      const filtered = fullData.filter(d=>d.year === year && d.month === parsedMonth);
+  
+      if (filtered.length > 0){
+        return resolve({fullData: fullData, search: filtered});
+      }
+    }
+    const data = await fetchData(uri);
+
+    const newData = data.years.filter(d=>d.year === year && d.month === parsedMonth);
+
+    resolve({fullData:data.months, search: newData});
+})}
+
+
 
 exports.fetchYear = fetchYear;
 exports.fetchMonth = fetchMonth;
+exports.fetchData = fetchData;
