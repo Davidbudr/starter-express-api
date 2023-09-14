@@ -1,20 +1,51 @@
+const URL =
+  "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/chmk/mm23/data";
+const { fetchYear, fetchMonth, fetchData } = require("../middleware/fetchdata");
 
-const URL = 'https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/chmk/mm23/data';
-const {fetchYear, fetchMonth} = require('../middleware/fetchdata');
 
-exports.getRPIXbyYear = (req,res,next)=>{
-    const { year} = req.params;
-    fetchYear(URL, year)
-    .then(data =>{
-        return (data)?res.json({data: data}):res.json({status: 'error'});
-    })
+let monthData = [];
+let yearData = [];
+
+Initialize();
+
+async function Initialize() {
+    const data = await fetchData(URL);
+
+    monthData = data.months;
+    yearData = data.years;
 }
 
 
-exports.getRPIXbyMonth = (req,res,next)=>{
-    const { year, month} = req.params;
-    fetchMonth(URL, year, month)
-    .then(data =>{
-        return (data)?res.json({data: data}):res.json({status: 'error'});
-    })
-}
+exports.getRPIXbyYear = (req, res, next) => {
+  const { year } = req.params;
+  fetchYear(URL, year, yearData).then((data) => {
+    yearData = data.dataset;
+
+    return data.result.length > 0
+      ? res.json({ data: data.result })
+      : res.json({ status: "data not found", data: [{
+        date: year,
+        value: NaN,
+        year: year,
+        month: NaN,
+        sourceDataset: NaN,
+      }] });
+  });
+};
+
+exports.getRPIXbyMonth = (req, res, next) => {
+  const { year, month } = req.params;
+  fetchMonth(URL, year, month, monthData).then((data) => {
+    monthData = data.dataset;
+
+    return data.result.length > 0
+      ? res.json({ data: data.result })
+      : res.json({ status: "data not found", data: [{
+        date: `${year} ${month}`,
+        value: NaN,
+        year: year,
+        month: month,
+        sourceDataset: NaN,
+      }] });
+  });
+};
